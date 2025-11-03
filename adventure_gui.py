@@ -25,9 +25,8 @@ class AdventureGUI(tk.Tk):
 
         self.buttons_frame = tk.Frame(self)
         self.buttons_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
-
         # Game state
-        self.current_scene_id = None
+        self.session = None
 
         # Start the flow by asking for name
         self.ask_name()
@@ -63,12 +62,12 @@ class AdventureGUI(tk.Tk):
 
     # --- Engine-driven adventure ---
     def start_adventure(self):
-        self.current_scene_id = ENGINE.start_id
+        self.session = ENGINE.new_session(self.player_name)
         self.render_scene()
 
     def render_scene(self):
-        scene = ENGINE.get_scene(self.current_scene_id)
-        self.set_story(scene.text)
+        scene = self.session.current_scene()
+        self.set_story(self.session.render_text())
         self.clear_buttons()
         if scene.type == "choice":
             for opt in scene.options:
@@ -77,6 +76,7 @@ class AdventureGUI(tk.Tk):
                     text=f"{opt.key}: {opt.label}",
                     command=lambda k=opt.key: self.handle_choice(k),
                 ).pack(side=tk.LEFT, padx=5)
+            tk.Button(self.buttons_frame, text="Inventory", command=self.show_inventory).pack(side=tk.LEFT, padx=5)
             tk.Button(self.buttons_frame, text="Back to Menu", command=self.show_main_menu).pack(side=tk.LEFT, padx=5)
         elif scene.type == "input":
             entry = tk.Entry(self.buttons_frame)
@@ -88,9 +88,9 @@ class AdventureGUI(tk.Tk):
             tk.Button(self.buttons_frame, text="Back to Menu", command=self.show_main_menu).pack(side=tk.LEFT, padx=5)
 
     def handle_choice(self, key: str):
-        next_id, outcome, is_fatal, is_end = ENGINE.apply_choice(self.current_scene_id, key)
-        if outcome:
-            messagebox.showinfo("Outcome", outcome)
+        message, is_fatal, is_end = self.session.apply_choice(key)
+        if message:
+            messagebox.showinfo("Outcome", message)
         if is_end:
             if is_fatal:
                 messagebox.showinfo("Quest Ended", "Alas, your quest has ended in tragedy!")
@@ -98,13 +98,12 @@ class AdventureGUI(tk.Tk):
                 messagebox.showinfo("Victory", "Your quest concludes gloriously.")
             self.show_main_menu()
             return
-        self.current_scene_id = next_id
         self.render_scene()
 
     def handle_input(self, value: str):
-        next_id, outcome, is_fatal, is_end = ENGINE.apply_input(self.current_scene_id, value)
-        if outcome:
-            messagebox.showinfo("Outcome", outcome)
+        message, is_fatal, is_end = self.session.apply_input(value)
+        if message:
+            messagebox.showinfo("Outcome", message)
         if is_end:
             if is_fatal:
                 messagebox.showinfo("Quest Ended", "Alas, your quest has ended in tragedy!")
@@ -112,8 +111,13 @@ class AdventureGUI(tk.Tk):
                 messagebox.showinfo("Victory", "Your quest concludes gloriously.")
             self.show_main_menu()
             return
-        self.current_scene_id = next_id
         self.render_scene()
+
+    def show_inventory(self):
+        if not self.session:
+            return
+        inv = self.session.describe_inventory()
+        messagebox.showinfo("Inventory", f"You carry: {inv}")
 
 
 if __name__ == "__main__":
