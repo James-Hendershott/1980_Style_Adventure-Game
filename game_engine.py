@@ -8,7 +8,7 @@ or `apply_input` to advance.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Literal
+from typing import Dict, List, Optional, Tuple, Literal, Set
 import os
 
 
@@ -38,6 +38,7 @@ class Option:
     next_id: Optional[str] = None
     outcome: Optional[str] = None
     fatal: bool = False
+    item_gain: Optional[str] = None
 
 
 @dataclass
@@ -50,6 +51,9 @@ class Scene:
     input_correct: Dict[str, Tuple[str, Optional[str]]] = field(default_factory=dict)
     # When wrong input leads to fatal outcome
     input_fatal_outcome: Optional[str] = None
+    # Optional retries for input scenes and progressive hints
+    input_retries: int = 0
+    input_hints: List[str] = field(default_factory=list)
 
 
 class Engine:
@@ -62,37 +66,8 @@ class Engine:
     def get_scene(self, scene_id: str) -> Scene:
         return self.scenes[scene_id]
 
-    def apply_choice(self, scene_id: str, key: str) -> Tuple[str, Optional[str], bool, bool]:
-        """Apply a choice for a 'choice' scene.
-
-        Returns: (next_scene_id, outcome_saved, is_fatal_end, is_end)
-        """
-        scene = self.get_scene(scene_id)
-        key_low = key.strip().lower()
-        for opt in scene.options:
-            if opt.key.lower() == key_low:
-                if opt.outcome:
-                    save_outcome(opt.outcome)
-                if opt.fatal:
-                    return ("end_fatal", opt.outcome, True, True)
-                if opt.next_id is None:
-                    return ("end", opt.outcome, False, True)
-                return (opt.next_id, opt.outcome, False, False)
-        raise ValueError(f"Invalid choice '{key}' for scene '{scene_id}'")
-
-    def apply_input(self, scene_id: str, value: str) -> Tuple[str, Optional[str], bool, bool]:
-        """Apply text input for an 'input' scene."""
-        scene = self.get_scene(scene_id)
-        ans = value.strip().lower()
-        if ans in scene.input_correct:
-            next_id, outcome = scene.input_correct[ans]
-            if outcome:
-                save_outcome(outcome)
-            return (next_id, outcome, False, False)
-        # wrong -> fatal
-        if scene.input_fatal_outcome:
-            save_outcome(scene.input_fatal_outcome)
-        return ("end_fatal", scene.input_fatal_outcome, True, True)
+    def new_session(self, player_name: str) -> "Session":
+        return Session(self, player_name)
 
     # --- Scene graph ---
     def _build_scenes(self):
@@ -102,9 +77,8 @@ class Engine:
         add(Scene(
             id="castle_or_forest",
             text=(
-                "You are on a quest to rescue Princess Elara. Legend says she's held in the "
-                "ancient Crimson Castle. Dark forests surround the castle grounds.\n\n"
-                "Where do you go?"
+                "You are on a quest, {name}. Princess Elara is held in the ancient Crimson Castle.\n"
+                "Dark forests surround the castle grounds.\n\nWhere do you go?"
             ),
             options=[
                 Option("castle", "Head to the castle gates", next_id="castle_entrance"),
@@ -146,6 +120,8 @@ class Engine:
             ),
             input_correct={"m": ("secret_library", "Solved side entrance riddle")},
             input_fatal_outcome="Failed side entrance riddle",
+            input_retries=2,
+            input_hints=["It appears in 'minute' and 'moment'.", "But it's absent from 'a thousand years'."]
         ))
 
         # Secret library
@@ -168,7 +144,7 @@ class Engine:
                 "The lever opens hidden stairs up to a quiet observation tower. A signal horn rests on a ledge."
             ),
             options=[
-                Option("signal", "Blow the horn to call allies", next_id="throne_room", outcome="Allies rallied to your cause"),
+                Option("signal", "Blow the horn to call allies", next_id="throne_room", outcome="Allies rallied to your cause", item_gain="horn"),
                 Option("sneak", "Sneak back down toward the throne room", next_id="throne_room"),
             ],
         ))
@@ -215,7 +191,7 @@ class Engine:
                 "Dark stairs lead to dungeons. Choose:\n1) Metallic clanging left\n2) Moaning ahead\n3) Flickering light right"
             ),
             options=[
-                Option("1", "Go left to clanging", next_id="throne_room", outcome="Armed at armory"),
+                Option("1", "Go left to clanging", next_id="throne_room", outcome="Armed at armory", item_gain="sword"),
                 Option("2", "Go straight toward moaning", fatal=True, outcome="Fell to dungeon zombies"),
                 Option("3", "Follow flickering light", next_id="catacombs", outcome="Found a secret candle-lit passage"),
             ],
@@ -241,6 +217,8 @@ class Engine:
             ),
             input_correct={"echo": ("throne_room", "Answered the catacomb riddle")},
             input_fatal_outcome="Failed catacomb riddle",
+            input_retries=2,
+            input_hints=["It repeats what it hears...", "It lives on in canyons."]
         ))
 
         # Throne room (end)
@@ -257,7 +235,7 @@ class Engine:
         add(Scene(
             id="forest_path",
             text=(
-                "A mystical stag blocks your way. Choose:\n1) Calm it\n2) Shoot it\n3) Follow it\n4) Approach a shining pond"
+                "A mystical stag blocks your way, {name}. Choose:\n1) Calm it\n2) Shoot it\n3) Follow it\n4) Approach a shining pond"
             ),
             options=[
                 Option("1", "Attempt to calm the stag", next_id="secret_library", outcome="Led to secret entrance"),
@@ -275,6 +253,8 @@ class Engine:
             ),
             input_correct={"e": ("throne_room", "Druids' amulet granted")},
             input_fatal_outcome="Failed druid riddle",
+            input_retries=2,
+            input_hints=["Think of the letters.", "Count appearances in month names."]
         ))
 
         add(Scene(
@@ -282,13 +262,83 @@ class Engine:
             text="At the mystic pond choose: A) Drink  B) Search banks  C) Vow",
             options=[
                 Option("a", "Drink from the pond", next_id="throne_room", outcome="Healed by mystic pond and found hidden tunnel"),
-                Option("b", "Search the banks", next_id="secret_library", outcome="Found medallion at mystic pond"),
+                Option("b", "Search the banks", next_id="secret_library", outcome="Found medallion at mystic pond", item_gain="medallion"),
                 Option("c", "Make a knightly vow", next_id="throne_room", outcome="Boon of the pond guardian"),
             ],
         ))
 
     def _add(self, scene: Scene) -> None:
         self.scenes[scene.id] = scene
+
+
+class Session:
+    def __init__(self, engine: Engine, player_name: str):
+        self.engine = engine
+        self.name = player_name
+        self.inventory: Set[str] = set()
+        self.attempts_left: Dict[str, int] = {}
+        self.current_scene_id: str = engine.start_id
+
+    def current_scene(self) -> Scene:
+        return self.engine.get_scene(self.current_scene_id)
+
+    def render_text(self) -> str:
+        text = self.current_scene().text
+        return text.replace("{name}", self.name or "adventurer")
+
+    def describe_inventory(self) -> str:
+        return ", ".join(sorted(self.inventory)) if self.inventory else "(empty)"
+
+    def apply_choice(self, key: str) -> Tuple[Optional[str], bool, bool]:
+        """Returns (message, is_fatal_end, is_end). Scene is advanced internally."""
+        scene = self.current_scene()
+        key_low = key.strip().lower()
+        for opt in scene.options:
+            if opt.key.lower() == key_low:
+                if opt.outcome:
+                    save_outcome(opt.outcome)
+                if opt.item_gain:
+                    self.inventory.add(opt.item_gain)
+                if opt.fatal:
+                    # end game
+                    return (opt.outcome, True, True)
+                if opt.next_id is None:
+                    # successful end
+                    return (opt.outcome, False, True)
+                self.current_scene_id = opt.next_id
+                return (opt.outcome, False, False)
+        raise ValueError(f"Invalid choice '{key}' for scene '{scene.id}'")
+
+    def apply_input(self, value: str) -> Tuple[Optional[str], bool, bool]:
+        """Returns (message, is_fatal_end, is_end). Scene is advanced internally."""
+        scene = self.current_scene()
+        ans = value.strip().lower()
+        # correct answer
+        if ans in scene.input_correct:
+            next_id, outcome = scene.input_correct[ans]
+            if outcome:
+                save_outcome(outcome)
+            self.current_scene_id = next_id
+            # reset attempts tracking for this scene id (no longer in it)
+            self.attempts_left.pop(scene.id, None)
+            return (outcome, False, False)
+
+        # wrong answer
+        retries_cfg = scene.input_retries
+        if retries_cfg > 0:
+            left = self.attempts_left.get(scene.id, retries_cfg)
+            left -= 1
+            self.attempts_left[scene.id] = left
+            if left > 0:
+                # provide a hint if available based on attempt number used
+                used = retries_cfg - left
+                hint = scene.input_hints[used - 1] if used - 1 < len(scene.input_hints) else "Incorrect. Try again."
+                return (hint, False, False)
+
+        # out of retries -> fatal
+        if scene.input_fatal_outcome:
+            save_outcome(scene.input_fatal_outcome)
+        return (scene.input_fatal_outcome, True, True)
 
 
 # Singleton engine for convenience

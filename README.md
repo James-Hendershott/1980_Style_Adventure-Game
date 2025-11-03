@@ -15,6 +15,9 @@ Highlights
 	- Catacombs with a skeletal sentry and a riddle
 	- Mystic Pond branch with three boons
 	- Druid circle riddle and more throne room approaches
+- Player name templating — your chosen name appears in the story text.
+- Inventory system — pick up items along the way (e.g., horn, sword, medallion).
+- Riddle retries with hints — a couple of input scenes allow limited retries with progressive hints before failure.
 
 Requirements
 - Python 3.9+ (tested with 3.13 on Windows)
@@ -40,8 +43,9 @@ python .\adventure_gui.py
 
 Gameplay notes
 - Enter your knightly name when prompted (CLI) or when the GUI opens.
-- In the CLI, type the option keys as shown (e.g., `1`, `left`, `a`).
+- In the CLI, type the option keys as shown (e.g., `1`, `left`, `a`). Type `i` to view your inventory at any choice prompt.
 - Outcomes are appended to `adventure_outcomes.txt`. You can view them from the CLI menu or the GUI’s “View Past Outcomes.”
+- In the GUI, there’s an “Inventory” button on choice screens to review your items.
 
 Troubleshooting
 - PowerShell execution policy blocks venv activation:
@@ -53,5 +57,6 @@ Troubleshooting
 
 Development
 - The story graph lives in `game_engine.py` (see the `Engine._build_scenes()` method). To add scenes or options, edit that graph once and both the CLI and GUI respect the changes.
+- The engine exposes a `Session` with per‑run state (name, inventory, riddle attempts). Front‑ends use `ENGINE.new_session(name)` to play. Choice options can award items via `Option(item_gain="...")`. Input scenes can set `input_retries` and `input_hints` for guided puzzles.
 
 Enjoy the quest!

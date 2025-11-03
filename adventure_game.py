@@ -20,31 +20,35 @@ def get_player_name():
 
 def play_adventure():
     print("\nWelcome to the Kingdom's Peril Adventure!")
-    scene_id = ENGINE.start_id
+    session = ENGINE.new_session(player_name)
 
     while True:
-        scene = ENGINE.get_scene(scene_id)
-        print("\n" + scene.text)
+        scene = session.current_scene()
+        print("\n" + session.render_text())
 
         if scene.type == "choice":
             # show options
             for opt in scene.options:
                 print(f" - {opt.key}: {opt.label}")
+            print("   (type 'i' to view your inventory)")
             sel = input("Choose: ").strip()
+            if sel.lower() in ("i", "inv", "inventory"):
+                print(f"Inventory: {session.describe_inventory()}")
+                continue
             try:
-                next_id, outcome, is_fatal, is_end = ENGINE.apply_choice(scene_id, sel)
+                message, is_fatal, is_end = session.apply_choice(sel)
             except ValueError as e:
                 print(e)
                 continue
         elif scene.type == "input":
             ans = input("Enter your answer: ")
-            next_id, outcome, is_fatal, is_end = ENGINE.apply_input(scene_id, ans)
+            message, is_fatal, is_end = session.apply_input(ans)
         else:
             # end scenes (shouldn't be reached directly in this engine)
-            is_fatal, is_end, next_id, outcome = False, True, None, None
+            is_fatal, is_end, message = False, True, None
 
-        if outcome:
-            print(f"Outcome recorded: {outcome}")
+        if message:
+            print(f"Note: {message}")
 
         if is_end:
             if is_fatal:
@@ -52,8 +56,6 @@ def play_adventure():
             else:
                 print("\nVictory! Your quest concludes gloriously.")
             break
-
-        scene_id = next_id
 
 
 def main():
