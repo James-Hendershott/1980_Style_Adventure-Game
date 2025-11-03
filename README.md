@@ -2,10 +2,6 @@
 
 This is a standalone, text-based adventure game implemented in `adventure_game.py`.
 
-What changed
-- The accidental `retro_adventure_game/` Django app was removed from the repo (core files removed). If you need any files recovered, let me know before pushing.
-- The console game script (`adventure_game.py`) was extended with an additional story branch (the "Mystic Pond").
-
 Quick start (Windows PowerShell)
 
 1. Open PowerShell in the project root (where `adventure_game.py` lives).
