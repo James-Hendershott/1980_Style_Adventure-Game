@@ -5,26 +5,43 @@ Run with:
 """
 
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import simpledialog, messagebox, scrolledtext
 from game_engine import ENGINE, read_outcomes
+from retro_monitor import RetroMonitor
 
 
 class AdventureGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Kingdom's Peril — GUI")
-        self.geometry("640x360")
+        self.title("Kingdom's Peril — CRT GUI")
+        self.geometry("860x600")
         self.player_name = "Sir indecisive"
 
-        # Main containers
-        self.text_frame = tk.Frame(self)
-        self.text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Retro monitor skin
+        self.monitor = RetroMonitor(self, width=820, height=520)
+        self.monitor.pack(padx=10, pady=10)
 
-        self.story_label = tk.Label(self.text_frame, text="", wraplength=600, justify=tk.LEFT)
-        self.story_label.pack(anchor=tk.W)
+        # Screen interior: stack story and buttons
+        self.screen_container = tk.Frame(self.monitor.screen, bg="#000000")
+        self.screen_container.pack(fill=tk.BOTH, expand=True)
 
-        self.buttons_frame = tk.Frame(self)
-        self.buttons_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        self.retro_font = tkfont.Font(family="Courier New", size=14)
+        self.phosphor = "#00ff66"
+
+        self.story_label = tk.Label(
+            self.screen_container,
+            text="",
+            wraplength=740,
+            justify=tk.LEFT,
+            bg="#000000",
+            fg=self.phosphor,
+            font=self.retro_font,
+        )
+        self.story_label.pack(anchor=tk.W, padx=16, pady=(12, 6))
+
+        self.buttons_frame = tk.Frame(self.screen_container, bg="#000000")
+        self.buttons_frame.pack(fill=tk.X, padx=12, pady=(0, 12))
         # Game state
         self.session = None
 
@@ -47,9 +64,9 @@ class AdventureGUI(tk.Tk):
     def show_main_menu(self):
         self.set_story(f"Welcome, {self.player_name}!\n\nChoose an option:")
         self.clear_buttons()
-        tk.Button(self.buttons_frame, text="Start New Adventure", command=self.start_adventure).pack(side=tk.LEFT, padx=5)
-        tk.Button(self.buttons_frame, text="View Past Outcomes", command=self.show_outcomes).pack(side=tk.LEFT, padx=5)
-        tk.Button(self.buttons_frame, text="Quit", command=self.quit).pack(side=tk.LEFT, padx=5)
+        self._crt_button(self.buttons_frame, "Start New Adventure", self.start_adventure).pack(side=tk.LEFT, padx=6)
+        self._crt_button(self.buttons_frame, "View Past Outcomes", self.show_outcomes).pack(side=tk.LEFT, padx=6)
+        self._crt_button(self.buttons_frame, "Quit", self.quit).pack(side=tk.LEFT, padx=6)
 
     def show_outcomes(self):
         contents = read_outcomes()
@@ -71,21 +88,22 @@ class AdventureGUI(tk.Tk):
         self.clear_buttons()
         if scene.type == "choice":
             for opt in scene.options:
-                tk.Button(
+                self._crt_button(
                     self.buttons_frame,
-                    text=f"{opt.key}: {opt.label}",
-                    command=lambda k=opt.key: self.handle_choice(k),
-                ).pack(side=tk.LEFT, padx=5)
-            tk.Button(self.buttons_frame, text="Inventory", command=self.show_inventory).pack(side=tk.LEFT, padx=5)
-            tk.Button(self.buttons_frame, text="Back to Menu", command=self.show_main_menu).pack(side=tk.LEFT, padx=5)
+                    f"{opt.key}: {opt.label}",
+                    lambda k=opt.key: self.handle_choice(k),
+                ).pack(side=tk.LEFT, padx=6)
+            self._crt_button(self.buttons_frame, "Inventory", self.show_inventory).pack(side=tk.LEFT, padx=6)
+            self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
         elif scene.type == "input":
-            entry = tk.Entry(self.buttons_frame)
-            entry.pack(side=tk.LEFT, padx=5)
-            tk.Button(self.buttons_frame, text="Submit", command=lambda: self.handle_input(entry.get())).pack(side=tk.LEFT, padx=5)
-            tk.Button(self.buttons_frame, text="Back to Menu", command=self.show_main_menu).pack(side=tk.LEFT, padx=5)
+            entry = tk.Entry(self.buttons_frame, bg="#000000", fg=self.phosphor, insertbackground=self.phosphor, relief=tk.FLAT)
+            entry.configure(font=self.retro_font)
+            entry.pack(side=tk.LEFT, padx=6)
+            self._crt_button(self.buttons_frame, "Submit", lambda: self.handle_input(entry.get())).pack(side=tk.LEFT, padx=6)
+            self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
         else:
             # end scenes not used directly; return to menu
-            tk.Button(self.buttons_frame, text="Back to Menu", command=self.show_main_menu).pack(side=tk.LEFT, padx=5)
+            self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
 
     def handle_choice(self, key: str):
         message, is_fatal, is_end = self.session.apply_choice(key)
@@ -118,6 +136,22 @@ class AdventureGUI(tk.Tk):
             return
         inv = self.session.describe_inventory()
         messagebox.showinfo("Inventory", f"You carry: {inv}")
+
+    # --- Styling helpers ---
+    def _crt_button(self, parent, text, command):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg="#001a00",
+            fg=self.phosphor,
+            activebackground="#003300",
+            activeforeground=self.phosphor,
+            relief=tk.FLAT,
+            bd=0,
+            font=self.retro_font,
+            highlightthickness=0,
+        )
 
 
 if __name__ == "__main__":
