@@ -62,8 +62,8 @@ class RetroMonitor(tk.Frame):
             (sx1 + sx2) // 2,
             (sy1 + sy2) // 2,
             window=self.screen,
-            width=(sx2 - sx1) - 8,
-            height=(sy2 - sy1) - 8,
+            width=(sx2 - sx1) - 24,
+            height=(sy2 - sy1) - 24,
         )
 
         # Decorative power light and label

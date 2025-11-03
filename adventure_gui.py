@@ -25,6 +25,8 @@ class AdventureGUI(tk.Tk):
         # Screen interior: stack story and buttons
         self.screen_container = tk.Frame(self.monitor.screen, bg="#000000")
         self.screen_container.pack(fill=tk.BOTH, expand=True)
+        # Update wrap length on resize so text never clips
+        self.screen_container.bind("<Configure>", self._on_resize)
 
         self.retro_font = tkfont.Font(family="Courier New", size=14)
         self.phosphor = "#00ff66"
@@ -92,15 +94,19 @@ class AdventureGUI(tk.Tk):
                     self.buttons_frame,
                     f"{opt.key}: {opt.label}",
                     lambda k=opt.key: self.handle_choice(k),
-                ).pack(side=tk.LEFT, padx=6)
-            self._crt_button(self.buttons_frame, "Inventory", self.show_inventory).pack(side=tk.LEFT, padx=6)
-            self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
+                ).pack(fill=tk.X, anchor=tk.W, padx=6, pady=3)
+            row = tk.Frame(self.buttons_frame, bg="#000000")
+            row.pack(fill=tk.X, padx=0, pady=(6, 0))
+            self._crt_button(row, "Inventory", self.show_inventory).pack(side=tk.LEFT, padx=6)
+            self._crt_button(row, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
         elif scene.type == "input":
             entry = tk.Entry(self.buttons_frame, bg="#000000", fg=self.phosphor, insertbackground=self.phosphor, relief=tk.FLAT)
             entry.configure(font=self.retro_font)
-            entry.pack(side=tk.LEFT, padx=6)
-            self._crt_button(self.buttons_frame, "Submit", lambda: self.handle_input(entry.get())).pack(side=tk.LEFT, padx=6)
-            self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
+            entry.pack(fill=tk.X, padx=6, pady=(0, 6))
+            row = tk.Frame(self.buttons_frame, bg="#000000")
+            row.pack(fill=tk.X)
+            self._crt_button(row, "Submit", lambda: self.handle_input(entry.get())).pack(side=tk.LEFT, padx=6)
+            self._crt_button(row, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
         else:
             # end scenes not used directly; return to menu
             self._crt_button(self.buttons_frame, "Back to Menu", self.show_main_menu).pack(side=tk.LEFT, padx=6)
@@ -152,6 +158,11 @@ class AdventureGUI(tk.Tk):
             font=self.retro_font,
             highlightthickness=0,
         )
+
+    def _on_resize(self, event):
+        # Keep story text wrapping within available width, leaving some padding
+        w = max(event.width - 40, 300)
+        self.story_label.configure(wraplength=w)
 
 
 if __name__ == "__main__":
