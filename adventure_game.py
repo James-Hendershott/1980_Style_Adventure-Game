@@ -216,6 +216,31 @@ def throne_room():
         print("The real princess was hidden in the dungeon! 'Inconceivable!' you exclaim in triumph.")
         save_outcome("Saw through throne room illusion")
 
+def mystic_pond():
+    """A new optional story branch: the mystic pond with choices and consequences."""
+    print("\nYou approach a serene pond whose surface shimmers like polished silver.")
+    print("Ripples form even though there's no wind, and you feel a calm ancient presence.")
+    print("A) Drink from the pond")
+    print("B) Search the banks for a hidden token")
+    print("C) Close your eyes and make a knightly vow")
+
+    choice = get_choice(["a", "b", "c"], "Choose (A/B/C): ").lower()
+    if choice == "a":
+        print("\nThe water heals a deep wound and fills you with clarity. You gain insight into the castle's secret passages.")
+        print("As you stand, a small ripple shows the location of a hidden tunnel leading toward the throne room.")
+        save_outcome("Healed by mystic pond and found hidden tunnel")
+        throne_room()
+    elif choice == "b":
+        print("\nYou discover a tarnished medallion bearing an old family crest. It hums faintly in your hand.")
+        print("The medallion repels lesser magic. Feeling emboldened, you press toward the castle, heart steady.")
+        save_outcome("Found medallion at mystic pond")
+        secret_library()
+    else:
+        print("\nYour vow calls forth a guardian spirit who tests your resolve in combat.")
+        print("You fight bravely, and the spirit, satisfied, grants you a boon: a single decisive blow in the final battle.")
+        save_outcome("Boon of the pond guardian")
+        throne_room()
+
 def forest_path():
     """Alternative forest path scenario."""
     print("\nYou take the dangerous forest path.")
@@ -224,7 +249,9 @@ def forest_path():
     print("2. Shoot it with your bow")
     print("3. Follow it")
     
-    choice = get_choice(["1", "2", "3"], "Choose action (1/2/3): ")
+    print("4. Approach a shining pond nearby")
+
+    choice = get_choice(["1", "2", "3", "4"], "Choose action (1/2/3/4): ")
     if choice == "1":
         print("\nThe stag leads you to a secret castle entrance!")
         secret_library()
@@ -239,6 +266,9 @@ def forest_path():
     else:
         print("\nFollowing the stag leads you to an ancient druid circle.")
         druid_quest()
+
+    if choice == "4":
+        mystic_pond()
 
 def druid_quest():
     """Druid circle scenario with a time loop challenge."""
@@ -280,6 +310,7 @@ def dungeon_path():
         print("\nYou find an escape tunnel leading to the princess!")
         print("The true Elara was hidden in plain sight!")
         save_outcome("Found true princess through intuition")
+
 
 def main():
     """Main game loop and flow control."""
