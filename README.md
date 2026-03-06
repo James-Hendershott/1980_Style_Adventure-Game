@@ -1,62 +1,32 @@
-# Kingdom's Peril — Adventure Game (CLI + GUI)
+# 1980_Style_Adventure-Game
 
-Kingdom's Peril is a retro, choose‑your‑own‑adventure game. It now uses a shared game engine so both the console (CLI) and the Tkinter GUI read from the same story.
+"Kingdom's Peril" — a text adventure game with a shared engine and two frontends. Written in Python.
 
-What's included
-- `game_engine.py` — shared story/scene graph, outcomes logging.
-- `adventure_game.py` — console (CLI) front‑end.
-- `adventure_gui.py` — simple Tkinter GUI front‑end.
-- `adventure_outcomes.txt` — outcomes log (auto‑appended).
+Built for CS 3620 Server-Side Web Architecture. Grade: A.
 
-Highlights
-- Multiple new paths and outcomes (in addition to the original flow):
-	- Hidden stairs from the library leading to an observation tower and signal horn
-	- Grand hall banquet detour (watch out for the poisoned feast!)
-	- Catacombs with a skeletal sentry and a riddle
-	- Mystic Pond branch with three boons
-	- Druid circle riddle and more throne room approaches
-- Player name templating — your chosen name appears in the story text.
-- Inventory system — pick up items along the way (e.g., horn, sword, medallion).
-- Riddle retries with hints — a couple of input scenes allow limited retries with progressive hints before failure.
+I wrote this code myself. AI was used for concept research, not code generation.
 
-Requirements
-- Python 3.9+ (tested with 3.13 on Windows)
-- Tkinter is bundled with most Python Windows installers. On Linux, you may need to install `python3-tk` from your package manager.
+## What it does
 
-Quick start (Windows PowerShell)
+You play a character navigating a fantasy kingdom. There are multiple paths — hidden stairs, a grand hall, catacombs, a mystic pond, a druid circle. You collect items (horn, sword, medallion), solve riddles with limited retries and progressive hints, and your choices determine the outcome.
 
-1) Create and activate a virtual environment (recommended)
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+Two ways to play:
+- **CLI** (`adventure_game.py`) — terminal-based, classic text adventure style
+- **GUI** (`adventure_gui.py`) — Tkinter window with retro terminal visual effects
+
+Both frontends use the same game engine. That separation was intentional.
+
+## Architecture
+
+```
+game_engine.py      - Shared engine (~14KB), scene graph, game state
+adventure_game.py   - CLI frontend
+adventure_gui.py    - Tkinter GUI frontend
+retro_monitor.py    - Visual effects for the GUI
 ```
 
-2) Run the console version (CLI)
-```powershell
-python .\adventure_game.py
-```
+The engine uses a scene graph architecture. Scenes and options are defined as dataclasses. The engine handles state, inventory, branching, and player name templating throughout story text. Frontends just handle input and display.
 
-3) Run the GUI (Tkinter)
-```powershell
-python .\adventure_gui.py
-```
+## Honesty
 
-Gameplay notes
-- Enter your knightly name when prompted (CLI) or when the GUI opens.
-- In the CLI, type the option keys as shown (e.g., `1`, `left`, `a`). Type `i` to view your inventory at any choice prompt.
-- Outcomes are appended to `adventure_outcomes.txt`. You can view them from the CLI menu or the GUI’s “View Past Outcomes.”
-- In the GUI, there’s an “Inventory” button on choice screens to review your items.
-
-Troubleshooting
-- PowerShell execution policy blocks venv activation:
-	```powershell
-	Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-	.\.venv\Scripts\Activate.ps1
-	```
-- On Linux, if the GUI fails to start due to Tk missing, install system packages (e.g., `sudo apt-get install python3-tk`).
-
-Development
-- The story graph lives in `game_engine.py` (see the `Engine._build_scenes()` method). To add scenes or options, edit that graph once and both the CLI and GUI respect the changes.
-- The engine exposes a `Session` with per‑run state (name, inventory, riddle attempts). Front‑ends use `ENGINE.new_session(name)` to play. Choice options can award items via `Option(item_gain="...")`. Input scenes can set `input_retries` and `input_hints` for guided puzzles.
-
-Enjoy the quest!
+This is my code. The scene graph, the inventory system, the riddle mechanics, the engine/frontend separation — all mine. AI helped me research concepts around text adventure design, not write the implementation.
